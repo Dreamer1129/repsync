@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, Minus, Save, PartyPopper } from "lucide-react";
+import { Check, X, Minus, Save, PartyPopper, CalendarX } from "lucide-react";
 import { saveAttendance } from "@/lib/actions";
 import { useBatches, useRoster, useAttendanceMarks } from "@/lib/hooks";
 import { LoadingBlock } from "@/components/ui/LoadingBlock";
@@ -11,6 +11,9 @@ import { cn } from "@/lib/cn";
 import { fadeUp } from "@/lib/motion";
 
 type Mark = "present" | "absent" | null;
+
+// Map JS getDay() (0=Sun…6=Sat) to the 3-letter abbreviation used in batch.days
+const JS_DAY_TO_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 export default function AttendancePage() {
   const { data: batchesData } = useBatches();
@@ -21,20 +24,36 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false);
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
-  const batches = batchesData ?? [];
+  // Today's 3-letter day abbreviation ("Mon", "Tue", …)
+  const todayShort = JS_DAY_TO_SHORT[new Date().getDay()];
+
+  const allBatches = batchesData ?? [];
   const roster = rosterData ?? [];
+
+  // Sort: batches running today first, then the rest alphabetically
+  const batches = useMemo(() => {
+    return [...allBatches].sort((a, b) => {
+      const aToday = a.days.includes(todayShort) ? 0 : 1;
+      const bToday = b.days.includes(todayShort) ? 0 : 1;
+      return aToday - bToday || a.name.localeCompare(b.name);
+    });
+  }, [allBatches, todayShort]);
+
   const activeBatchId = batchId ?? batches[0]?.id ?? "";
   const batch = batches.find((b) => b.id === activeBatchId);
+  const batchRunsToday = batch ? batch.days.includes(todayShort) : false;
   const { data: existingMarks, refresh: refreshMarks } = useAttendanceMarks(activeBatchId, todayISO);
 
-  // Prefill with whatever is already recorded for this batch today.
-  // Render-phase adjustment: sync local marks whenever a fresh payload arrives.
-  const [marksSource, setMarksSource] = useState<Record<string, "present" | "absent"> | null>(null);
-  if (existingMarks !== marksSource) {
-    setMarksSource(existingMarks);
-    setMarks(existingMarks ?? {});
-    setSaved(!!existingMarks && Object.keys(existingMarks).length > 0);
-  }
+  // Sync marks whenever fresh attendance marks arrive for the active batch/date
+  useEffect(() => {
+    if (existingMarks && Object.keys(existingMarks).length > 0) {
+      setMarks(existingMarks);
+      setSaved(true);
+    } else {
+      setMarks({});
+      setSaved(false);
+    }
+  }, [existingMarks]);
 
   if (!batchesData || !rosterData || !batch) {
     return (
@@ -99,7 +118,9 @@ export default function AttendancePage() {
       <motion.div variants={fadeUp} initial="hidden" animate="show" custom={1} className="glass-panel p-5">
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-stone-400">Select batch</p>
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {batches.map((b) => (
+        {batches.map((b) => {
+            const isToday = b.days.includes(todayShort);
+            return (
             <button
               key={b.id}
               onClick={() => {
@@ -111,7 +132,9 @@ export default function AttendancePage() {
                 "shrink-0 rounded-xl border px-4 py-2.5 text-left transition",
                 activeBatchId === b.id
                   ? "border-[#d9a441]/60 bg-[#d9a441]/15 shadow-[0_0_20px_rgba(217,164,65,0.25)]"
-                  : "border-white/10 bg-white/5 hover:border-white/25"
+                  : isToday
+                    ? "border-white/20 bg-white/8 hover:border-white/30"
+                    : "border-white/10 bg-white/5 opacity-60 hover:border-white/20 hover:opacity-80"
               )}
             >
               <p className={cn("text-sm font-bold tracking-wide", activeBatchId === b.id ? "text-[#f5d47e]" : "text-stone-200")}>
@@ -120,8 +143,14 @@ export default function AttendancePage() {
               <p className="text-[11px] tracking-wide text-stone-500">
                 {b.time} · {b.trainerName}
               </p>
+              {isToday && (
+                <span className="mt-1 inline-block rounded-md bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">
+                  Today
+                </span>
+              )}
             </button>
-          ))}
+          );
+        })}
         </div>
       </motion.div>
 
@@ -211,7 +240,8 @@ export default function AttendancePage() {
             </div>
             <button
               onClick={handleSave}
-              disabled={marked === 0}
+              disabled={marked === 0 || !batchRunsToday}
+              title={!batchRunsToday ? `${batch?.name} doesn't run on ${todayShort}s` : undefined}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#e9bd55] to-[#b8860b] py-3.5 text-sm font-bold tracking-[0.15em] text-[#060913] shadow-[0_0_28px_rgba(217,164,65,0.4)] transition hover:shadow-[0_0_40px_rgba(217,164,65,0.55)] disabled:opacity-40 disabled:shadow-none"
             >
               {saving ? (
@@ -238,6 +268,23 @@ export default function AttendancePage() {
                 >
                   {batch.name} · {present} present recorded for {formatDate(todayISO)}
                 </motion.p>
+              )}
+            </AnimatePresence>
+
+            {/* Warning when batch doesn't run today */}
+            <AnimatePresence>
+              {!batchRunsToday && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="mt-3 flex items-center gap-2 rounded-lg border border-amber-400/25 bg-amber-400/10 px-3 py-2.5"
+                >
+                  <CalendarX className="h-4 w-4 shrink-0 text-amber-300" />
+                  <p className="text-[11px] tracking-wide text-amber-200">
+                    <span className="font-bold">{batch?.name}</span> doesn&apos;t run on {todayShort}s — you can still pre-mark but saving is locked.
+                  </p>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>

@@ -4,8 +4,8 @@ import { Fragment } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 
-// Gym runs Mon–Fri (seed + batches are weekday-only), so the grid is 5 rows.
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+// Full 7-day gym operations Mon–Sun
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function intensity(count: number): string {
   if (count === 0) return "bg-white/[0.04]";
@@ -28,7 +28,7 @@ export function AttendanceHeatmap({ heatmap }: { heatmap: number[][] }) {
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-display text-2xl font-semibold tracking-wide text-[#f4f1ea]">Attendance heatmap</h3>
-          <p className="mt-1 text-xs tracking-[0.18em] text-stone-500">DAILY CHECK-INS · LAST 12 WEEKS · MON–FRI</p>
+          <p className="mt-1 text-xs tracking-[0.18em] text-stone-500">DAILY CHECK-INS · LAST 12 WEEKS · MON–SUN</p>
         </div>
         <div className="flex items-center gap-1.5 text-[11px] tracking-wide text-stone-500">
           <span>Quiet</span>

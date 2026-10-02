@@ -87,9 +87,9 @@ export default function PaymentsPage() {
           <div className="sm:col-span-3"><LoadingBlock lines={2} /></div>
         ) : (
           <>
-            <StatCard label="Collected" value={pkrShort(dashboardStats.collectedThisMonth)} delta={12.4} icon={BadgeCheck} delay={0.1} />
-            <StatCard label="Pending" value={pkrShort(dashboardStats.pendingFees)} delta={-6.2} icon={Hourglass} delay={0.2} />
-            <StatCard label="Overdue" value={pkrShort(dashboardStats.overdueFees)} delta={-18.9} icon={AlertTriangle} delay={0.3} />
+            <StatCard label="Collected" value={pkrShort(dashboardStats.collectedThisMonth)} delta={dashboardStats.revenueDelta} icon={BadgeCheck} delay={0.1} />
+            <StatCard label="Pending" value={pkrShort(dashboardStats.pendingFees)} badge="Due soon" icon={Hourglass} delay={0.2} />
+            <StatCard label="Overdue" value={pkrShort(dashboardStats.overdueFees)} badge={dashboardStats.overdueFees > 0 ? "Action required" : "Zero balance"} icon={AlertTriangle} delay={0.3} />
           </>
         )}
       </div>

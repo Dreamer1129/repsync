@@ -5,8 +5,18 @@ import { CalendarDays, Clock, MapPin } from "lucide-react";
 import type { BatchDTO } from "@/lib/actions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
+const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 export function UpcomingBatches({ batches }: { batches: BatchDTO[] }) {
-  const today = batches.slice(0, 5);
+  const now = new Date();
+  const dayShort = WEEKDAYS_SHORT[now.getDay()];
+  const dateFormatted = `${WEEKDAYS_LONG[now.getDay()].toUpperCase()} · ${now.getDate()} ${MONTHS_SHORT[now.getMonth()].toUpperCase()} ${now.getFullYear()}`;
+  
+  const todaysBatches = batches.filter((b) => b.days.includes(dayShort));
+  const isShowingAll = todaysBatches.length === 0;
+  const displayBatches = isShowingAll ? batches.slice(0, 5) : todaysBatches;
 
   return (
     <motion.div
@@ -21,13 +31,17 @@ export function UpcomingBatches({ batches }: { batches: BatchDTO[] }) {
           <CalendarDays className="h-5 w-5 text-[#f5d47e]" strokeWidth={1.75} />
         </span>
         <div>
-          <h3 className="font-display text-2xl font-semibold tracking-wide text-[#f4f1ea]">Today&apos;s batches</h3>
-          <p className="text-xs tracking-[0.18em] text-stone-500">FRIDAY · 2 OCT 2026</p>
+          <h3 className="font-display text-2xl font-semibold tracking-wide text-[#f4f1ea]">
+            {isShowingAll ? "Upcoming batches" : "Today's batches"}
+          </h3>
+          <p className="text-xs tracking-[0.18em] text-stone-500">
+            {dateFormatted} {isShowingAll && "· ALL CLASSES"}
+          </p>
         </div>
       </div>
 
       <div className="flex-1 space-y-3">
-        {today.map((b, i) => {
+        {displayBatches.map((b, i) => {
           const pct = Math.round((b.enrolled / b.capacity) * 100);
           return (
             <motion.div

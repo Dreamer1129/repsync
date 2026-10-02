@@ -16,6 +16,13 @@ import { fadeUp } from "@/lib/motion";
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+function getGreeting(date: Date): string {
+  const h = date.getHours();
+  if (h >= 5 && h < 12) return "Good morning";
+  if (h >= 12 && h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function DashboardPage() {
   const { data } = useDashboardData();
   const dashboardStats = data?.stats;
@@ -32,6 +39,7 @@ export default function DashboardPage() {
       : revDelta < 0
         ? `${Math.abs(revDelta).toFixed(1)}% below last month`
         : "flat vs last month";
+  const greeting = getGreeting(now);
 
   return (
     <div className="space-y-5">
@@ -40,7 +48,7 @@ export default function DashboardPage() {
           {dateLine}
         </p>
         <h2 className="mt-2 font-display text-4xl font-semibold tracking-wide text-[#f4f1ea] md:text-5xl">
-          Good evening, <span className="text-gold-grad italic">Commander.</span>
+          {greeting}, <span className="text-gold-grad italic">Commander.</span>
         </h2>
         <p className="mt-2 max-w-xl text-sm tracking-wide text-stone-400">
           The gym is humming — {todayCheckins} athletes checked in today and revenue is tracking {revText}.
@@ -53,7 +61,13 @@ export default function DashboardPage() {
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Monthly revenue" value={pkrShort(dashboardStats.monthlyRevenue)} delta={dashboardStats.revenueDelta} icon={Wallet} delay={0.1} />
           <StatCard label="Active members" value={String(dashboardStats.activeMembers)} delta={dashboardStats.membersDelta} icon={Users} delay={0.2} />
-          <StatCard label="Expiring soon" value={String(dashboardStats.expiringSoon)} delta={-2} icon={AlarmClock} delay={0.3} />
+          <StatCard
+            label="Expiring soon"
+            value={String(dashboardStats.expiringSoon)}
+            badge={dashboardStats.expiringSoon > 0 ? "Requires review" : "All clear"}
+            icon={AlarmClock}
+            delay={0.3}
+          />
           <StatCard label="Avg attendance" value={`${dashboardStats.avgAttendance}%`} delta={dashboardStats.attendanceDelta} icon={CalendarCheck2} delay={0.4} />
         </div>
       )}

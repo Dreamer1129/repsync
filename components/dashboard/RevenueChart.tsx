@@ -26,6 +26,7 @@ function ChartTooltip({
 
 export function RevenueChart({ series }: { series: RevenuePoint[] }) {
   const revenueSeries = series;
+  const currentTarget = series && series.length > 0 ? series[series.length - 1].target : 560000;
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -44,7 +45,7 @@ export function RevenueChart({ series }: { series: RevenuePoint[] }) {
             <span className="h-2 w-2 rounded-full bg-[#f5d47e]" /> Revenue
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#6366f1]" /> Target
+            <span className="h-2 w-2 rounded-full bg-[#6366f1]" /> Target ({pkrShort(currentTarget)})
           </span>
         </div>
       </div>
@@ -66,7 +67,7 @@ export function RevenueChart({ series }: { series: RevenuePoint[] }) {
               width={44}
             />
             <Tooltip content={<ChartTooltip />} cursor={{ stroke: "rgba(245,212,126,0.4)" }} />
-            <ReferenceLine y={560000} stroke="#6366f1" strokeDasharray="6 6" strokeOpacity={0.6} />
+            <ReferenceLine y={currentTarget} stroke="#6366f1" strokeDasharray="6 6" strokeOpacity={0.6} />
             <Area
               type="monotone"
               dataKey="revenue"
