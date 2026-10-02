@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { usePlans } from "@/lib/hooks";
+import type { PlanDTO } from "@/lib/actions";
 
 function ChartTooltip({ active, payload, total }: { active?: boolean; payload?: { name: string; value: number }[]; total: number }) {
   if (!active || !payload?.length) return null;
@@ -17,9 +17,8 @@ function ChartTooltip({ active, payload, total }: { active?: boolean; payload?: 
   );
 }
 
-export function PlanDonut() {
-  const { data: plans } = usePlans();
-  const list = plans ?? [];
+export function PlanDonut({ plans }: { plans: PlanDTO[] }) {
+  const list = plans;
   const total = list.reduce((s, p) => s + p.memberCount, 0);
   const data = list.map((plan) => ({
     name: plan.name,

@@ -5,16 +5,12 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Radar, BellRing, Check } from "lucide-react";
 import { sendReminder } from "@/lib/actions";
-import { useMembers, usePayments } from "@/lib/hooks";
+import type { MemberDTO, PaymentDTO } from "@/lib/actions";
 import { daysUntil, formatDate, initials, pkr } from "@/lib/format";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { LoadingBlock } from "@/components/ui/LoadingBlock";
 
-export function ExpiryAlertList() {
+export function ExpiryAlertList({ members, payments }: { members: MemberDTO[]; payments: PaymentDTO[] }) {
   const [reminded, setReminded] = useState<string[]>([]);
-  const { data: members } = useMembers();
-  const { data: payments } = usePayments();
-  if (!members || !payments) return <LoadingBlock lines={5} />;
 
   const atRisk = members.filter((m) => m.status !== "active");
   const overdue = payments.filter((p) => p.status === "overdue");

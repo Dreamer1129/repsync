@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   getAttendanceMarks,
   getBatches,
+  getDashboardData,
   getDashboardStats,
   getHeatmap,
   getMember,
@@ -17,6 +18,7 @@ import {
   getRoster,
   getTrainers,
   type BatchDTO,
+  type DashboardData,
   type DashboardStats,
   type MemberDTO,
   type MemberProfile,
@@ -119,6 +121,11 @@ export function useHeatmap() {
 
 export function useDashboardStats() {
   return useAction<DashboardStats>(getDashboardStats);
+}
+
+/* Whole dashboard in one round-trip (see getDashboardData). */
+export function useDashboardData() {
+  return useAction<DashboardData>(getDashboardData);
 }
 
 export function useAttendanceMarks(batchId: string, dateISO: string) {

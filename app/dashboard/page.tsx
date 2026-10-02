@@ -9,7 +9,7 @@ import { AttendanceHeatmap } from "@/components/dashboard/AttendanceHeatmap";
 import { ExpiryAlertList } from "@/components/dashboard/ExpiryAlertList";
 import { UpcomingBatches } from "@/components/dashboard/UpcomingBatches";
 import { LoadingGrid } from "@/components/ui/LoadingBlock";
-import { useDashboardStats, useHeatmap } from "@/lib/hooks";
+import { useDashboardData } from "@/lib/hooks";
 import { pkrShort } from "@/lib/format";
 import { fadeUp } from "@/lib/motion";
 
@@ -17,8 +17,9 @@ const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export default function DashboardPage() {
-  const { data: dashboardStats } = useDashboardStats();
-  const { data: heatmap } = useHeatmap();
+  const { data } = useDashboardData();
+  const dashboardStats = data?.stats;
+  const heatmap = data?.heatmap ?? [];
 
   const now = new Date();
   const dateLine = `${WEEKDAYS[now.getDay()]} · ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
@@ -46,7 +47,7 @@ export default function DashboardPage() {
         </p>
       </motion.div>
 
-      {!dashboardStats ? (
+      {!data || !dashboardStats ? (
         <LoadingGrid />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -57,19 +58,23 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          <RevenueChart />
-        </div>
-        <PlanDonut />
-      </div>
+      {data && (
+        <>
+          <div className="grid gap-5 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              <RevenueChart series={data.revenueSeries} />
+            </div>
+            <PlanDonut plans={data.plans} />
+          </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <ExpiryAlertList />
-        <UpcomingBatches />
-      </div>
+          <div className="grid gap-5 xl:grid-cols-2">
+            <ExpiryAlertList members={data.members} payments={data.payments} />
+            <UpcomingBatches batches={data.batches} />
+          </div>
 
-      <AttendanceHeatmap />
+          <AttendanceHeatmap heatmap={data.heatmap} />
+        </>
+      )}
     </div>
   );
 }

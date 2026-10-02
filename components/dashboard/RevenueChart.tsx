@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { pkrShort } from "@/lib/format";
-import { useRevenueSeries } from "@/lib/hooks";
+import type { RevenuePoint } from "@/lib/actions";
 
 function ChartTooltip({
   active,
@@ -24,9 +24,8 @@ function ChartTooltip({
   );
 }
 
-export function RevenueChart() {
-  const { data } = useRevenueSeries();
-  const revenueSeries = data ?? [];
+export function RevenueChart({ series }: { series: RevenuePoint[] }) {
+  const revenueSeries = series;
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}

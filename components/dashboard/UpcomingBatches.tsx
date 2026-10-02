@@ -2,14 +2,11 @@
 
 import { motion } from "framer-motion";
 import { CalendarDays, Clock, MapPin } from "lucide-react";
-import { useBatches } from "@/lib/hooks";
+import type { BatchDTO } from "@/lib/actions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { LoadingBlock } from "@/components/ui/LoadingBlock";
 
-export function UpcomingBatches() {
-  const { data } = useBatches();
-  if (!data) return <LoadingBlock lines={5} />;
-  const today = data.slice(0, 5);
+export function UpcomingBatches({ batches }: { batches: BatchDTO[] }) {
+  const today = batches.slice(0, 5);
 
   return (
     <motion.div

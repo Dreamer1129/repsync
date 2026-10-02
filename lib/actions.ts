@@ -431,19 +431,27 @@ export async function saveAttendance(
 /* ---------------- dashboard aggregates ---------------- */
 
 export async function getRevenueSeries(): Promise<RevenuePoint[]> {
-  // Last 12 calendar months ending with the current month
+  // Last 12 calendar months ending with the current month — ONE query,
+  // bucketed in UTC in JS (avoids DB session-timezone traps with date_trunc).
   const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1));
+  const payments = await prisma.payment.findMany({
+    where: { status: "paid", date: { gte: start } },
+    select: { date: true, amount: true },
+  });
+  const totals = new Array<number>(12).fill(0);
+  for (const p of payments) {
+    const idx =
+      (p.date.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+      (p.date.getUTCMonth() - start.getUTCMonth());
+    if (idx >= 0 && idx < 12) totals[idx] += p.amount;
+  }
   const points: RevenuePoint[] = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-    const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
-    const agg = await prisma.payment.aggregate({
-      where: { status: "paid", date: { gte: d, lt: next } },
-      _sum: { amount: true },
-    });
     points.push({
       month: MONTH_LABELS[(d.getUTCMonth() + 2) % 12],
-      revenue: agg._sum.amount ?? 0,
+      revenue: totals[11 - i],
       target: MONTH_TARGETS[(d.getUTCMonth() + 2) % 12],
     });
   }
@@ -500,7 +508,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     return total ? (present / total) * 100 : 0;
   };
 
-  const [monthlyRevenue, prevRevenue, activeMembers, joined30, expiringSoon, avgAttendance, prevAttendance, collectedThisMonth, pendingFees, overdueFees] =
+  const [monthlyRevenue, prevRevenue, activeMembers, joined30, expiringSoon, avgAttendance, prevAttendance, pendingFees, overdueFees] =
     await Promise.all([
       sumPaid(monthStart),
       sumPaid(prevMonthStart, monthStart),
@@ -509,7 +517,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       prisma.member.count({ where: { expiryDate: { gte: today, lte: in7 } } }),
       rate(d30, today),
       rate(d60, d30),
-      sumPaid(monthStart),
       sumByStatus("due"),
       sumByStatus("overdue"),
     ]);
@@ -524,10 +531,38 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     expiringSoon,
     avgAttendance: Math.round(avgAttendance * 10) / 10,
     attendanceDelta: Math.round((avgAttendance - prevAttendance) * 10) / 10,
-    collectedThisMonth,
+    collectedThisMonth: monthlyRevenue,
     pendingFees,
     overdueFees,
   };
+}
+
+/* ---------------- one-shot dashboard fetch ---------------- */
+
+export interface DashboardData {
+  stats: DashboardStats;
+  revenueSeries: RevenuePoint[];
+  heatmap: number[][];
+  plans: PlanDTO[];
+  members: MemberDTO[];
+  payments: PaymentDTO[];
+  batches: BatchDTO[];
+}
+
+/* The whole dashboard in ONE server round-trip: a single serverless
+   invocation, a single Prisma engine init, everything fetched in
+   parallel inside it. This is what keeps the page fast on cold starts. */
+export async function getDashboardData(): Promise<DashboardData> {
+  const [stats, revenueSeries, heatmap, plans, members, payments, batches] = await Promise.all([
+    getDashboardStats(),
+    getRevenueSeries(),
+    getHeatmap(),
+    getPlans(),
+    getMembers(),
+    getPayments(),
+    getBatches(),
+  ]);
+  return { stats, revenueSeries, heatmap, plans, members, payments, batches };
 }
 
 /* ---------------- reminders (simulated channel) ---------------- */

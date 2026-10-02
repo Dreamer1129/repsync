@@ -2,7 +2,6 @@
 
 import { Fragment } from "react";
 import { motion } from "framer-motion";
-import { useHeatmap } from "@/lib/hooks";
 import { cn } from "@/lib/cn";
 
 // Gym runs Mon–Fri (seed + batches are weekday-only), so the grid is 5 rows.
@@ -16,9 +15,8 @@ function intensity(count: number): string {
   return "bg-[#f5d47e]/90 shadow-[0_0_10px_rgba(245,212,126,0.5)]";
 }
 
-export function AttendanceHeatmap() {
-  const { data } = useHeatmap();
-  const heatmapWeeks = data ?? [];
+export function AttendanceHeatmap({ heatmap }: { heatmap: number[][] }) {
+  const heatmapWeeks = heatmap;
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
