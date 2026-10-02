@@ -1,0 +1,110 @@
+// RepSync database schema — PostgreSQL (Neon serverless).
+// Every table maps to a Phase 1 entity: Plan, Member, Payment, Trainer, Batch, AttendanceRecord.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Plan {
+  id             String   @id
+  name           String   @unique
+  price          Int
+  durationMonths Int
+  color          String
+  tagline        String
+  popular        Boolean  @default(false)
+  features       String[]
+  members        Member[]
+  createdAt      DateTime @default(now())
+}
+
+model Member {
+  id             String   @id
+  name           String
+  email          String   @unique
+  phone          String
+  planId         String
+  plan           Plan     @relation(fields: [planId], references: [id])
+  joinDate       DateTime
+  expiryDate     DateTime
+  attendanceRate Int      @default(0)
+  lastCheckin    String   @default("")
+  totalPaid      Int      @default(0)
+  hue            Int      @default(0)
+  payments       Payment[]
+  attendance     AttendanceRecord[]
+  createdAt      DateTime @default(now())
+}
+
+enum PaymentStatus {
+  paid
+  due
+  overdue
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  memberId   String
+  member     Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  memberName String
+  planName   String
+  amount     Int
+  method     String
+  date       DateTime
+  status     PaymentStatus @default(paid)
+  createdAt  DateTime      @default(now())
+
+  @@index([date])
+  @@index([status])
+}
+
+model Trainer {
+  id              String   @id
+  name            String
+  specialty       String
+  rating          Float
+  experienceYrs   Int
+  sessionsPerWeek Int
+  status          String   @default("active")
+  hue             Int      @default(0)
+  batches         Batch[]
+  createdAt       DateTime @default(now())
+}
+
+model Batch {
+  id         String   @id
+  name       String
+  trainerId  String
+  trainer    Trainer  @relation(fields: [trainerId], references: [id])
+  days       String[]
+  time       String
+  intensity  String   @default("Medium")
+  capacity   Int
+  enrolled   Int      @default(0)
+  hue        Int      @default(0)
+  attendance AttendanceRecord[]
+  createdAt  DateTime @default(now())
+}
+
+enum AttendanceStatus {
+  present
+  absent
+}
+
+model AttendanceRecord {
+  id       String           @id @default(cuid())
+  memberId String
+  member   Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  batchId  String
+  batch    Batch            @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  date     DateTime
+  status   AttendanceStatus
+
+  @@unique([memberId, batchId, date])
+  @@index([date])
+}
