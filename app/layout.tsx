@@ -22,6 +22,10 @@ export const metadata: Metadata = {
     "The cinematic command center for modern gyms: members, plans, payments, trainers, batches and attendance in one obsidian-glass workspace.",
 };
 
+// Pin serverless functions to Singapore — the Neon Postgres database lives
+// there, so every query avoids a US<->Asia round-trip.
+export const preferredRegion = "sin1";
+
 function MeshBackground() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
